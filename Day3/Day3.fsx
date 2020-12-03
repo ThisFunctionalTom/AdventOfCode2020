@@ -6,8 +6,7 @@ let solve (right, down) (lines: string [])  =
     |> List.filter (fun lineIdx ->
         let line = lines.[lineIdx]
         let x = (right*lineIdx/down)%line.Length
-        let ch = line.[x]
-        '#' = ch)
+        '#' = line.[x])
     |> List.length
 
 let fullPath name = Path.Combine (__SOURCE_DIRECTORY__, name)
