@@ -1,3 +1,4 @@
+open System
 open System.IO
 
 let toBin zeroCh oneCh (str: string) =
@@ -39,8 +40,7 @@ File.ReadAllLines(__SOURCE_DIRECTORY__ + "/Day5.input")
 let toSeatNumber boardingPassNr =
     boardingPassNr
     |> String.map (function | 'F' -> '0' | 'B' -> '1' | 'R' -> '1' | 'L' -> '0' | c -> c)
-    |> sprintf "0b%s"
-    |> int
+    |> fun binStr -> Convert.ToInt32(binStr, fromBase=2)
 
 let seatNumbers = 
     File.ReadAllLines(__SOURCE_DIRECTORY__ + "/Day5.input")
@@ -57,4 +57,3 @@ let solve2 seatNumbers =
 
 solve1 seatNumbers
 solve2 seatNumbers
-
