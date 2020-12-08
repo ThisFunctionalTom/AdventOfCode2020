@@ -64,26 +64,25 @@ module Bags =
     let count (bags: List<int*Color>) =
         bags |> List.sumBy fst
 
-[<EntryPoint>]
-let main argv =
-    let bags fileName =
+    let readFromFile fileName =
         readAllLines fileName
         |> Array.map parseLine
         |> Map.ofArray
 
-    Bags.allParents "shiny gold" (bags "example.input")
-    |> Set.count
-    |> printfn "%A"
+let example = Bags.readFromFile "example.input"
+let input = Bags.readFromFile "Day7.input"
 
-    Bags.allParents "shiny gold" (bags "Day7.input")
-    |> Set.count
-    |> printfn "%A"
+Bags.allParents "shiny gold" example
+|> Set.count
+|> printfn "%A"
 
-    let children = Bags.allChildren "shiny gold" (bags "example.input")
-    printfn "%A" children
-    printfn "%A" ((Bags.count children)  - 1)
+Bags.allParents "shiny gold" input
+|> Set.count
+|> printfn "%A"
 
-    let children = Bags.allChildren "shiny gold" (bags "Day7.input")
-    printfn "%A" ((Bags.count children)  - 1)
+let exampleChildren = Bags.allChildren "shiny gold" example
+printfn "%A" exampleChildren
+printfn "%A" ((Bags.count exampleChildren)  - 1)
 
-    0 // return an integer exit code
+let inputChildren = Bags.allChildren "shiny gold" input
+printfn "%A" ((Bags.count inputChildren)  - 1)
