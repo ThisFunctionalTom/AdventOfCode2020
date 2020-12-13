@@ -64,3 +64,29 @@ let solve2 input =
     |> Array.reduce (*)
 
 readInput "Day10.input" |> solve2
+
+let solve2better fileName =
+    let input = 
+        readInput fileName
+        |> Array.append [|0|]
+        |> Array.sortDescending
+        |> List.ofArray
+
+    let max = input.[0]
+
+    input
+    |> List.fold (fun comb next ->
+        let nc = 
+            comb 
+            |> List.filter (fun (v, _) -> v - next <= 3)
+            |> List.sumBy snd
+        (next, nc)::comb
+    ) [max+3, 1UL]
+    |> List.head
+    |> snd
+
+solve2better "example1.input" |> printfn "%d"
+solve2better "example2.input" |> printfn "%d"
+solve2better "Day10.input" |> printfn "%d" // 1322306994176
+            
+
