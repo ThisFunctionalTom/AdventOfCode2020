@@ -74,14 +74,14 @@ let solve2better fileName =
 
     let max = input.[0]
 
-    input
-    |> List.fold (fun comb next ->
-        let nc = 
-            comb 
-            |> List.filter (fun (v, _) -> v - next <= 3)
-            |> List.sumBy snd
-        (next, nc)::comb
-    ) [max+3, 1UL]
+    let getComb children curr =
+        let possible =
+            children 
+            |> List.filter (fun (v, _) -> v - curr <= 3)
+        let nc = List.sumBy snd possible
+        (curr, nc)::possible
+
+    input |> List.fold getComb [max+3, 1UL]
     |> List.head
     |> snd
 
