@@ -49,32 +49,42 @@ let solve input =
 solve (readInput "example.input")
 solve (readInput "Day14.input")
 
-let expandMask mask : Value list =
-    let rec loop (acc: char list) bits =
-        [ match bits with
-          | [] -> acc
-          | 'X' :: rest ->
-            yield! loop ('0'::acc) rest
-            yield! loop ('1'::acc) rest
-          | c :: rest ->
-            yield! loop ('1'::acc) rest ]
-    loop [] (List.ofArray mask)
-    |> List.map Array.ofList
+let applyMask2 (mask: Value) (value: Value) : Value =
+    Array.zip mask value
+    |> Array.map (function 
+        | ('0', v) -> v 
+        | ('1', _) -> '1'
+        | ('X', _) -> 'X')
+
+let expandAddress addr : Value list =
+    addr
+    |> Array.fold (fun masks char -> 
+        match char with
+        | '1' | '0' -> masks |> List.map (fun (m: char list) -> char::m)
+        | 'X' -> masks |> List.collect (fun (m: char list) -> [ '1'::m; '0'::m])
+    ) [[]]
+    |> List.map (Array.ofList >> Array.rev)
+
+applyMask2 (Array.ofSeq "00000000000000000000000000000000X0XX") (toBinary 26UL)
+|> expandAddress
+|> List.map String
 
 let solve2 input =
-    let rec loop masks memory cmds =
+    let rec loop mask memory cmds =
         match cmds with
         | [] -> 
             memory 
             |> Map.fold (fun s _ v -> s + toDecimal v) 0UL
         | Mask msk :: rest -> 
-            loop (expandMask msk) memory rest
+            loop msk memory rest
         | Write write :: rest -> 
+            let addrs = applyMask2 mask write.Idx |> expandAddress
             let newMemory =
-                masks
-                |> List.fold (fun m msk -> Map.add (applyMask msk write.Idx) write.Value m) memory
-            loop masks newMemory rest
-    loop List.empty Map.empty input
+                addrs
+                |> List.fold (fun m addr -> 
+                    Map.add addr write.Value m) memory
+            loop mask newMemory rest
+    loop (toBinary 0UL) Map.empty input
 
 solve2 (readInput "example2.input")
 solve2 (readInput "Day14.input")
