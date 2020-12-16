@@ -38,66 +38,34 @@ let readInput2 fileName =
         |> File.ReadAllLines
     
     getBusses bussesStr
-// let factorise n =
-//     let rec f n x a = 
-//         if x = n then
-//             x::a
-//         elif n % x = 0UL then 
-//             f (n/x) x (x::a)
-//         else
-//             f n (x+1UL) a
-//     f n 2UL []
 
-// let busses = readInput2 "Day13.input"
-// busses 
-// |> Array.map (fun (idx, busid) -> 
-//     factorise busid
-//     |> List.countBy id)
-
-let solve2 (printEvery: int) (busses: (uint64*uint64) []) =
-    let (maxOffset, maxBid) = 
+let solve2 startTs (busses: (uint64*uint64) []) =
+    let first = snd busses.[0]
+    let (offset, maxBusId) = 
         busses 
-        |> Array.maxBy (fun (x, y) -> if x < uint64 busses.Length then x*y else y)
+        |> Array.map (fun (bidx, bid) -> if bidx > 0UL && bidx % first = 0UL then bidx, bid*first else bidx, bid)
+        |> Array.maxBy snd
 
     let rec loop idx =
-        let upper = idx * maxOffset * maxBid
-        let ts = upper - maxOffset
-        if idx%(uint64 printEvery) = 0UL then printfn "TS: %d, Upper: %d" ts upper
-        let found =
-            busses
-            |> Array.forall (fun (iex, bid) -> (ts + idx)%bid = 0UL )
-        // let found = busses |> Array.forall (fun (idx, bid) -> 
-        //     let possibleSolutions = 
-        //         Seq.initInfinite (fun i -> ts + (uint64 i)*bid)
-        //         |> Seq.takeWhile (fun bts -> bts < upper)
-        //         |> List.ofSeq
-        //     List.exists (fun bts -> (bts + idx)%bid = 0UL) possibleSolutions)
-        if found 
+        let ts = maxBusId*idx - offset
+        if idx % 100000000UL = 0UL then printfn "%A" ts
+        if busses |> Array.forall (fun (bidx, bid) -> (ts + bidx)%bid = 0UL )
         then Some ts
         else loop (idx+1UL)
 
-    loop 1UL
+    let startIdx = startTs / maxBusId + 1UL
+    printfn "Step: %d, StartIdx: %d" maxBusId startIdx
+    loop startIdx
 
-let show (solution: uint64) (busses: (uint64*uint64) []) =
-    for (idx, bid) in busses do
-        printfn "Idx: %d, BusId: %d - %d|%d" idx bid (solution/bid) (solution%bid)
+let parse (input: string) =
+    input.Split(",") 
+    |> Array.indexed
+    |> Array.choose (function | (_, "x") -> None | (idx, str)  -> Some (uint64 idx, uint64 str))
 
-readInput2 "example.input"
-readInput2 "example.input" |> solve2 100
+parse "17,x,13,19" |> solve2 0UL // 3417
+parse "67,7,59,61" |> solve2 0UL // 754018
+parse "67,x,7,59,61" |> solve2 0UL // 779210
+parse "67,7,x,59,61" |> solve2 0UL // 1261476
+parse "1789,37,47,1889" |> solve2 0UL // 1202161486
 
-getBusses "17,x,13,19" |> solve2 10
-getBusses "67,7,59,61" |> show 754018UL
-
-59UL*12780UL
-//|> solve2 10
-
-
-
-let input = readInput2 "Day13.input"
-
-for (idx, bid) in input do
-    let x = input |> Array.filter (fun (i, b) -> i % bid = 0UL && i <> 0UL)
-    if not (Array.isEmpty x) then
-        printfn "Idx: %d, Bid: %d - %A" idx bid x
-
-523*19
+parse "19,x,x,x,x,x,x,x,x,41,x,x,x,x,x,x,x,x,x,523,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,17,13,x,x,x,x,x,x,x,x,x,x,29,x,853,x,x,x,x,x,37,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,23" |> solve2 100000000000000UL
