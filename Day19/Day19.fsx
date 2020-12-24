@@ -17,7 +17,7 @@ let parseRules (lines: string []) =
     |> Map.ofArray    
 
 open System.IO
-
+open System.Reflection.Metadata.Ecma335
 let readInput fileName =
     let txt =
         Path.Combine (__SOURCE_DIRECTORY__, fileName)
@@ -34,7 +34,6 @@ let getRegex (rules: Map<int, Match>) ruleId =
         match regexes |> Map.tryFind ruleId with
         | Some value -> value
         | None ->
-            printfn $"Calc ruleId: {ruleId}"
             let value =
                 match rules.[ruleId] with
                 | Simple value -> value
@@ -62,3 +61,53 @@ let solve fileName =
 solve "example.input"
 solve "Day19.input"
 
+let isMatch (rules: Map<int, Match>) input ruleId =
+    let showRule = function
+        | Simple c -> $"\"{c}\""
+        | Complex rules ->
+            rules
+            |> Array.map (fun seqRules -> seqRules |> Array.map string |> String.concat " ")
+            |> String.concat " | "
+    let rec ruleMatches ruleId (input: string) ident : string list =
+        let rec matchSeq rulesSeq (input: string) =
+            match rulesSeq with
+            | [] -> [ input ]
+            | nextRule::rest ->
+                ruleMatches nextRule input (ident+"|  ")
+                |> List.collect (fun oneInput -> matchSeq rest oneInput)
+
+        let rule =
+            match ruleId with
+            | 8 -> Complex [| [| 42 |]; [| 42; 8 |]  |]
+            | 11 -> Complex [| [| 42; 11; 31 |]; [| 42; 31 |] |]
+            | _ -> rules.[ruleId]
+//        printfn $"{ident}{ruleId}: %A{showRule rule} on <{input}>"
+        let result =
+            match rule with
+            | Simple c ->
+                if input.StartsWith(c)
+                then [ input.[c.Length..] ]
+                else []
+            | Complex orRules ->
+                orRules
+                |> List.ofArray
+                |> List.collect (fun rulesSeq -> matchSeq (List.ofArray rulesSeq) input)
+        let success =
+            match result with
+            | [] -> "failed"
+            | rest -> $"success: {rest}"
+//        printfn $"{ident}{ruleId}: {success}"
+        result
+    ruleMatches ruleId input ""
+    |> List.exists ((=) "")
+
+let rules, input = readInput "example2.input"
+
+let solve2 fileName =
+    let rules, inputs = readInput fileName
+
+    inputs
+    |> Array.filter (fun input -> isMatch rules input 0 )
+
+solve2 "example2.input" |> Array.length
+solve2 "Day19.input" |> Array.length
