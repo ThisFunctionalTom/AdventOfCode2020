@@ -44,7 +44,7 @@ solve "Day22.input"
 
 type Player = Player1 | Player2
 
-let playRecursiveCombatGame log (p1: int[]) (p2: int[]) =
+let playRecursiveCombatGame (p1: int[]) (p2: int[]) =
     let showDeck arr = arr |> Array.map string |> String.concat ", "
     let mutable gameId = 0
     let nextGameId () =
@@ -59,12 +59,12 @@ let playRecursiveCombatGame log (p1: int[]) (p2: int[]) =
         | [||], _ -> Player2, p2
         | _, [||] -> Player1, p1
         | _, _ ->
-            // log ""
-            // log $"-- Round {round} (Game {game}) --"
-            // log $"Player 1's deck: {showDeck p1}"
-            // log $"Player 2's deck: {showDeck p2}"
-            // log $"Player 1 plays: {p1.[0]}" 
-            // log $"Player 2 plays: {p2.[0]}" 
+            // printfn ""
+            // printfn $"-- Round {round} (Game {game}) --"
+            // printfn $"Player 1's deck: {showDeck p1}"
+            // printfn $"Player 2's deck: {showDeck p2}"
+            // printfn $"Player 1 plays: {p1.[0]}" 
+            // printfn $"Player 2 plays: {p2.[0]}" 
             let winner =
                 if Set.contains (p1, p2) played 
                 then Player1
@@ -79,22 +79,21 @@ let playRecursiveCombatGame log (p1: int[]) (p2: int[]) =
                         cache <- cache + 1
                         subGameWinner
                     | None ->
-                        // log $"Playing a sub-game to determine the winner..."
-                        // log ""
-                        // log $"=== Game {subGameId} ==="
+                        // printfn $"Playing a sub-game to determine the winner..."
+                        // printfn ""
+                        // printfn $"=== Game {subGameId} ==="
                         let subGameWinner, _ = loop subGameId 1 p1Sub p2Sub Set.empty
-                        // log $"The winner of game {subGameId} is {subGameWinner}!"
-                        // log ""
-                        // log $"...anyway, back to game {game}."
+                        // printfn $"The winner of game {subGameId} is {subGameWinner}!"
+                        // printfn ""
+                        // printfn $"...anyway, back to game {game}."
                         playedSubGames <- Map.add (p1Sub, p2Sub) (subGameWinner, subGameId) playedSubGames
                         if subGameId % 1000 = 0 
                         then printfn $"Played sub games: {subGameId} (Cache hits: {cache}, hit ratio: {float cache/float subGameId * 100.0}%%)"
-                        //then printfn $"Played sub games: {subGameId}"
                         subGameWinner
                 elif p1.[0] > p2.[0]
                 then Player1
                 else Player2
-            // log $"{winner} wins round {round} of game {game}!"
+            // printfn $"{winner} wins round {round} of game {game}!"
             let playedNew = Set.add (p1, p2) played
             match winner with
             | Player1 -> 
@@ -106,15 +105,15 @@ let playRecursiveCombatGame log (p1: int[]) (p2: int[]) =
                 let p2New = Array.append p2.[1..] [| p2.[0]; p1.[0] |]
                 loop game (round+1) p1New p2New playedNew
 
-    // log $"=== Game 1 ==="
+    // printfn $"=== Game 1 ==="
     let (winner, deck) = loop (nextGameId()) 1 p1 p2 Set.empty
-    // log $"The winner of game 1 is {winner}!"
+    // printfn $"The winner of game 1 is {winner}!"
     winner, deck
 
-let solve2 log fileName =
+let solve2 fileName =
     let p1, p2 = readInput fileName
-    snd (playRecursiveCombatGame log p1 p2)
+    snd (playRecursiveCombatGame p1 p2)
     |> getResult
 
-solve2 (fun str -> printfn "%s" str) "example.input"
-solve2 ignore "Day22.input"
+solve2 "example.input"
+solve2 "Day22.input"
