@@ -1,4 +1,5 @@
 open System
+open System.Diagnostics
 
 let readInput (input: string) =
     input 
@@ -90,6 +91,7 @@ let createCups cupsCount (input: int[])  =
         else Some (idx+1) )
 
 let play cupsCount moveCount (input: int[]) =
+    let timer = Stopwatch.StartNew()
     let getDest = getDest (1, cupsCount)
 
     let showCups (curr: Cup) =
@@ -111,32 +113,26 @@ let play cupsCount moveCount (input: int[]) =
             // printfn ""
             // printfn $"-- move {move} --"
             // printfn $"cups: {showCups currCup}"
+            timer.Restart()
             let pickup = Cups.getNext3Labels currCup
+            printfn $"PickUp: %A{timer.Elapsed}"
             // printfn $"pick up: {showPickup pickup}"
             
+            timer.Restart()
             let destLabel = getDest (currCup.Label - 1) pickup
+            printfn $"getDest: %A{timer.Elapsed}"
             // printfn $"destination: {destLabel}"
+            timer.Restart()
             let destCup = Cups.findBackward cupsCount destLabel currCup
+            printfn $"findDest: %A{timer.Elapsed}"
+            timer.Restart()
             Cups.move3 currCup destCup
+            printfn $"move: %A{timer.Elapsed}"
             loop (move + 1) currCup.Next
-
-    createCups cupsCount input 
-    |> loop 1
-
-let getResult1 cupsCount (cup: Cup) =
-    let one = Cups.findForward cupsCount 1 cup
-    Cups.toList one
-    |> List.skip 1
-    |> List.map string
-    |> String.concat ""
-
-let solve1 (input: string) =
-    let cupsCount = input.Length
-    readInput input
-    |> play cupsCount 100
-    |> getResult1 cupsCount
-
-solve1 "614752839"
+    timer.Restart()
+    let cups = createCups cupsCount input 
+    printfn $"Creating cups: %A{timer.Elapsed}"
+    loop 1 cups
 
 let getResult2 cupsCount (cup: Cup) =
     let one = Cups.findForward cupsCount 1 cup
@@ -148,4 +144,8 @@ let solve2 (input: string) =
     |> play cupsCount 10_000_000
     |> getResult2 cupsCount
 
-solve2 "389125467"
+[<EntryPoint>]
+let main argv =
+    solve2 "389125467"
+    |> printfn "%d"
+    0 // return an integer exit code
