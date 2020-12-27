@@ -1,4 +1,5 @@
 open System.IO
+
 let readInput fileName =
     let [| ts; bussesStr |] =
         Path.Combine(__SOURCE_DIRECTORY__, fileName)
