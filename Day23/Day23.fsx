@@ -1,151 +1,131 @@
 open System
 
 let readInput (input: string) =
-    input 
-    |> Array.ofSeq 
-    |> Array.map (string >> int)
-
-type Cup(label: int) =
-    let mutable (next: Cup option) = None
-    let mutable (prev: Cup option) = None
-    member _.Next 
-        with get () = next |> Option.get
-        and set n = next <- Some n
-    member _.Prev 
-        with get () = prev |> Option.get
-        and set p = prev <- Some p
-    member _.Label = label
-
-module Cups =
-    let rec findForward maxAttempts lbl (curr: Cup) =
-        if curr.Label = lbl then curr
-        elif maxAttempts = 0 
-        then failwith $"Label {lbl} not found"
-        else findForward (maxAttempts-1) lbl curr.Next
-
-    let rec findBackward maxAttempts lbl (curr: Cup) =
-        if curr.Label = lbl then curr
-        elif maxAttempts = 0 
-        then failwith $"Label {lbl} not found"
-        else findForward (maxAttempts-1) lbl curr.Prev
-    
-    let move3 (src: Cup) (dst: Cup) =
-        let pickup1 = src.Next
-        let pickup3 = pickup1.Next.Next
-
-        let srcNext = pickup3.Next
-        let dstNext = dst.Next
-
-        // Remove pickup from source
-        src.Next <- srcNext
-        srcNext.Prev <- src
-
-        // Insert into dest
-        pickup1.Prev <- dst
-        pickup3.Next <- dstNext
-        dstNext.Prev <- pickup3
-        dst.Next <- pickup1
-    
-    let getNext3Labels (curr: Cup) =
-        [ curr.Next.Label; curr.Next.Next.Label; curr.Next.Next.Next.Label ]
-
-    let toList (start: Cup) =
-        List.unfold (fun prev ->
-            match prev with
-            | None -> Some (start.Label, Some start.Next)
-            | Some cup when cup.Label <> start.Label -> Some (cup.Label, Some cup.Next)
-            | _ -> None) None
-
-    let unfold f =
-        let rec loop (first: Cup) (last: Cup) idx =
-            match f idx with
-            | Some lbl -> 
-                let newCup = Cup(lbl, Prev = last)
-                last.Next <- newCup
-                loop first newCup (idx+1)
-            | None ->
-                first.Prev <- last
-                last.Next <- first
-                first
-        
-        match f 0 with
-        | Some lbl -> 
-            let start = Cup(lbl)
-            loop start start 1
-        | None -> failwith "Invlid cups constructor"
+    input |> Array.ofSeq |> Array.map (string >> int)
 
 let rec getDest (min, max) dest (exclude: int list) =
-    if dest < min
-    then getDest (min, max) max exclude
-    elif exclude |> List.contains dest
-    then getDest (min, max) (dest-1) exclude
+    if dest < min then getDest (min, max) max exclude
+    elif exclude |> List.contains dest then getDest (min, max) (dest - 1) exclude
     else dest
 
-let createCups cupsCount (input: int[])  =
-    Cups.unfold (fun idx -> 
-        if idx >= cupsCount 
-        then None
-        elif idx < input.Length
-        then Some input.[idx]
-        else Some (idx+1) )
+type Cups(init: int [], ?count) =
+    let count = defaultArg count init.Length
 
-let play cupsCount moveCount (input: int[]) =
-    let getDest = getDest (1, cupsCount)
+    let cups =
+        Array.init count (fun idx -> (idx + 1) % count + 1)
 
-    let showCups (curr: Cup) =
-        Cups.toList curr
+    let set cupNr next = cups.[cupNr - 1] <- next
+
+    do
+        init
+        |> Array.pairwise
+        |> Array.iter (fun (prev, next) -> set prev next)
+
+    do
+        if init.Length = count then
+            set init.[^0] init.[0]
+        else
+            set init.[^0] (init.Length + 1)
+            set count init.[0]
+
+    member _.Count = count
+
+    member _.CupsArray =
+        cups |> Array.mapi (fun idx lbl -> idx + 1, lbl)
+
+    member _.Next cupNr = cups.[cupNr - 1]
+
+    member _.Next(cupNr: int, count: int) =
+        let rec loop count curr =
+            if count = 0 then curr else loop (count - 1) cups.[curr - 1]
+
+        loop count cupNr
+
+    member _.ToList(cupNr: int, count: int) =
+        List.unfold
+            (function
+            | 0, _ -> None
+            | count, curr ->
+                let next = cups.[curr - 1]
+                Some(next, (count - 1, next)))
+            (count, cupNr)
+
+    member _.ToList(start: int) =
+        List.unfold
+            (function
+            | None -> Some(start, Some cups.[start - 1])
+            | Some curr when curr <> start -> Some(curr, Some cups.[curr - 1])
+            | _ -> None)
+            None
+
+    member this.Move(src: int, dst: int, count: int) =
+        let blockStart = this.Next src
+        let blockEnd = this.Next(src, count)
+        let blockNext = this.Next blockEnd
+        let dstNext = this.Next dst
+
+        set dst blockStart
+        set blockEnd dstNext
+        set src blockNext
+
+let play moveCount curr (cups: Cups) =
+    let getDest = getDest (1, cups.Count)
+
+    let showCups (currCup) =
+        cups.ToList currCup
         |> List.map string
         |> String.concat " "
 
     let showPickup (pickup: int list) =
         pickup |> List.map string |> String.concat ", "
 
-    let rec loop move (currCup: Cup) =
+    let rec loop move (curr: int) =
         if move > moveCount then
             // printfn ""
             // printfn "-- final --"
-            // printfn $"cups: {showCups currCup}"
-            currCup
+            // printfn $"cups: {showCups curr}"
+            ()
         else
-            if move % 1000 = 0 then printfn $"Move: {move}"
+            //if move % 100000 = 0 then printfn $"Move: {move}"
             // printfn ""
             // printfn $"-- move {move} --"
-            // printfn $"cups: {showCups currCup}"
-            let pickup = Cups.getNext3Labels currCup
-            // printfn $"pick up: {showPickup pickup}"
-            
-            let destLabel = getDest (currCup.Label - 1) pickup
-            // printfn $"destination: {destLabel}"
-            let destCup = Cups.findBackward cupsCount destLabel currCup
-            Cups.move3 currCup destCup
-            loop (move + 1) currCup.Next
+            // printfn $"cups: {showCups curr}"
 
-    createCups cupsCount input 
-    |> loop 1
+            let pickup = cups.ToList(curr, 3)
+            //printfn $"pick up: {showPickup pickup}"
 
-let getResult1 cupsCount (cup: Cup) =
-    let one = Cups.findForward cupsCount 1 cup
-    Cups.toList one
+            let dest = getDest (curr - 1) pickup
+            //printfn $"destination: {dest}"
+            cups.Move(curr, dest, 3)
+            loop (move + 1) (cups.Next curr)
+
+    loop 1 curr
+
+let solve1 (input: string) moveCount =
+    let input = readInput input
+    let cups = Cups(input)
+
+    play moveCount input.[0] cups
+
+    cups.ToList 1
     |> List.skip 1
     |> List.map string
     |> String.concat ""
 
-let solve1 (input: string) =
-    let cupsCount = input.Length
-    readInput input
-    |> play cupsCount 100
-    |> getResult1 cupsCount
+solve1 "389125467" 10
+solve1 "389125467" 100
+solve1 "614752839" 100
 
-solve1 "614752839"
+let solve2 (input: string) moveCount cupsCount =
+    let input = readInput input
+    let cups = Cups(input, cupsCount)
 
-let getResult2 cupsCount (cup: Cup) =
-    let one = Cups.findForward cupsCount 1 cup
-    one.Next.Label * one.Next.Next.Label
+    play moveCount input.[0] cups
 
-let solve2 (input: string) =
-    let cupsCount = 1_000_000
-    readInput input
-    |> play cupsCount 10_000_000
-    |> getResult2 cupsCount
+    let [ first; second ] = cups.ToList (1, 2)
+    let result = (uint64 first)*(uint64 second)
+    printfn $"%d{first} * %d{second} = %d{result}"
+    result
 
-solve2 "389125467"
+solve2 "389125467" 10_000_000 1_000_000
+solve2 "614752839" 10_000_000 1_000_000
