@@ -11,15 +11,12 @@ let parseLine (line: string) =
     |> Seq.choose
         (fun (c1, c2) ->
             match c1, c2 with
-            | ' ',
-              ('e'
-              | 'w') -> Some(String([| c2 |]))
-            | ('n'
-              | 's'),
-              _ -> Some(String([| c1; c2 |]))
-            | _,
-              ('e'
-              | 'w') -> Some(String([| c2 |]))
+            | ' ', 'e'
+            | ' ', 'w' -> Some(String([| c2 |]))
+            | 'n', _
+            | 's', _ -> Some(String([| c1; c2 |]))
+            | _, 'e'
+            | _, 'w' -> Some(String([| c2 |]))
             | _ -> None)
     |> List.ofSeq
 
@@ -50,9 +47,7 @@ let getBlackTiles lines =
     |> Set.ofArray
 
 let solve1 fileName =
-    readInput fileName
-    |> getBlackTiles
-    |> Set.count
+    readInput fileName |> getBlackTiles |> Set.count
 
 solve1 "example.input"
 solve1 "Day24.input"
@@ -64,33 +59,33 @@ let getNeighbours (x, y) =
        2, 0 // e
        1, -1 // se
        -1, -1 |] // se
-    |> Array.map (fun (x2, y2) -> x + x2, y + y2 )
+    |> Array.map (fun (x2, y2) -> x + x2, y + y2)
     |> Set.ofArray
 
 module Set =
-    let collect f s =
-        s
-        |> Seq.collect f
-        |> Set.ofSeq
+    let collect f s = s |> Seq.collect f |> Set.ofSeq
 
-let flip (blackTiles: Set<int*int>) =
+let flip (blackTiles: Set<int * int>) =
     blackTiles
     |> Set.collect getNeighbours
     |> Set.union blackTiles
-    |> Set.filter (fun coord ->
-        let isBlack = blackTiles.Contains coord
-        let blackNeighbours = 
-            getNeighbours coord
-            |> Set.filter blackTiles.Contains
-            |> Set.count
-        (isBlack && (blackNeighbours = 1 || blackNeighbours = 2))
-        || (not isBlack && blackNeighbours = 2)
-    )
+    |> Set.filter
+        (fun coord ->
+            let isBlack = blackTiles.Contains coord
+
+            let blackNeighbours =
+                getNeighbours coord
+                |> Set.filter blackTiles.Contains
+                |> Set.count
+
+            (isBlack
+             && (blackNeighbours = 1 || blackNeighbours = 2))
+            || (not isBlack && blackNeighbours = 2))
 
 let solve2 fileName =
     readInput fileName
     |> getBlackTiles
-    |> Seq.unfold (fun state -> Some (state.Count, flip state)) 
+    |> Seq.unfold (fun state -> Some(state.Count, flip state))
     |> Seq.take 101
     |> Seq.last
 
